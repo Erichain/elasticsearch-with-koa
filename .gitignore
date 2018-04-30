@@ -60,4 +60,4 @@ typings/
 # Other system directories
 .idea/
 .DS_store
-
+static/
