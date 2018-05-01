@@ -35,11 +35,25 @@ function createData() {
         max: 50,
       }),
       jobType: faker.name.jobType(),
+      jobDescriptor: faker.lorem.sentence(),
       interests: [faker.lorem.word(), faker.lorem.word()],
     };
 
     requests.push(axios.put(`http://localhost:9200/megacorp/employee/${i}`, params));
   }
+
+  requests.push(
+    axios.put('http://localhost:9200/megacorp/_mapping/employee', {
+      employee: {
+        properties: {
+          jobType: {
+            type: 'text',
+            fielddata: true,
+          },
+        },
+      },
+    })
+  );
 
   return Promise.all(requests);
 }
@@ -47,20 +61,11 @@ function createData() {
 function writeDataToFile() {
   const filePath = `./static/data/log-${formatDate()}.json`;
   const queryBody = {
-    query: {
-      bool: {
-        must: {
-          match: {
-            jobType: 'Designer',
-          },
-        },
-        filter: {
-          range: {
-            age: {
-              gt: 40,
-            },
-          },
-        },
+    aggs: {
+      all_job_types: {
+        terms: {
+          field: 'jobType'
+        }
       },
     },
   };
@@ -68,7 +73,7 @@ function writeDataToFile() {
   axios.get('http://localhost:9200/megacorp/employee/_search', {
     params: {
       source: JSON.stringify(queryBody),
-      source_content_type: 'application/json'
+      source_content_type: 'application/json',
     },
   }).then((data) => {
     console.log(JSON.stringify(data.data, null, 2))
