@@ -20,6 +20,7 @@
   "dependencies": {
     "axios": "^0.18.0",
     "dateformat": "^3.0.3",
+    "faker": "^4.1.0",
     "koa": "^2.5.1",
     "shelljs": "^0.8.1"
   }

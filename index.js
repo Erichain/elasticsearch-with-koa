@@ -3,6 +3,7 @@ const axios = require('axios');
 const fs = require('fs');
 const shell = require('shelljs');
 const dateFormat = require('dateformat');
+const faker = require('faker');
 
 const app = new Koa();
 
@@ -22,27 +23,65 @@ function beginLog() {
   });
 }
 
-function putDataToDB() {
-  axios.put('http://localhost:9200/megacorp/employee/1', {
-    "first_name" : "John",
-    "last_name" :  "Smith",
-    "age" :        25,
-    "about" :      "I love to go rock climbing",
-    "interests": [ "sports", "music" ]
-  });
+function createData() {
+  const requests = [];
+
+  for (let i = 0; i < 10; i++) {
+    const params = {
+      first_name: faker.name.firstName(),
+      last_name: faker.name.lastName(),
+      age: faker.random.number({
+        min: 20,
+        max: 50,
+      }),
+      jobType: faker.name.jobType(),
+      interests: [faker.lorem.word(), faker.lorem.word()],
+    };
+
+    requests.push(axios.put(`http://localhost:9200/megacorp/employee/${i}`, params));
+  }
+
+  return Promise.all(requests);
 }
 
 function writeDataToFile() {
   const filePath = `./static/data/log-${formatDate()}.json`;
+  const queryBody = {
+    query: {
+      bool: {
+        must: {
+          match: {
+            jobType: 'Designer',
+          },
+        },
+        filter: {
+          range: {
+            age: {
+              gt: 40,
+            },
+          },
+        },
+      },
+    },
+  };
 
-  axios.get('http://localhost:9200/_search').then((data) => {
+  axios.get('http://localhost:9200/megacorp/employee/_search', {
+    params: {
+      source: JSON.stringify(queryBody),
+      source_content_type: 'application/json'
+    },
+  }).then((data) => {
+    console.log(JSON.stringify(data.data, null, 2))
+
     fs.writeFile(filePath, JSON.stringify(data.data, null, 2), null, () => {
       console.log('File writing success!');
     });
   });
 }
 
-putDataToDB();
+// if there isn't any data, this function should be called once
+// createData();
+
 beginLog();
 
 app.listen(8881);
